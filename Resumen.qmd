@@ -1,0 +1,628 @@
+---
+title: "Resumen para el Primer Parcial - Àngela Martí Calatayud"
+format:
+  html:
+    theme: lumen
+    toc: true
+    toc-depth: 3
+    embed-resources: true
+editor: 
+  markdown: 
+    wrap: sentence
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r, echo=FALSE, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(GGally)
+library(Hotelling)
+library(MASS)
+library(readr)
+library(tidyr)
+```
+
+# Introducción al Anàlisi de Datos
+
+## Los datos y sus tipos
+
+Los datos de los que disponemos suelen ser multidimensionales, en el sentido de que observamos varias características (**variables**) de una serie de individuos.
+Almacenamos estos datos en **tablas de datos** , donde cada columna corresponde a una variable y cada fila son los datos de un individuo concreto.
+
+Significador diferentes para **variables**:
+
+-   **Variable poblacional**: una característica que puede tomar diferentes valores sobre diferentes individuos.
+    Por ejemplo, la altura de las personas (de todo el mundo, de un país, de una ciudad…) es una variable poblacional.
+
+-   **Variable**: es un vector formado por los valores de una variable poblacional sobre los sujetos de una muestra.
+    Por ejemplo, las alturas de los niños recogidas en la tabla forman una variable en este sentido.
+
+### Tipos de variables
+
+-   **Datos cualitativos**.
+    Son los que expresan una cualidad del individuo, como por ejemplo el sexo cromosómico (macho, hembra), el género de una persona (hombre, mujer,...).
+    A los posibles valores que puede tomar un tipo de datos cualitativo se los suele llamar *niveles*.
+    Los datos cualitativos pueden ser iguales o distintos, y no admiten ningún otro tipo de comparación.
+
+-   **Datos ordinales**.
+    Expresan una cualidad del individuo, pero con la diferencia es que se pueden ordenar de manera natural.
+    Por ejemplo, los niveles de gravedad de una enfermedad (sano, leve, grave, muy grave, …).
+    También se suele llamar a los posibles valores que puede tomar un tipo de datos ordinal sus *niveles*.
+
+-   **Datos cuantitativos**.
+    Son datos que se refieren a medidas que sean números genuinos, con los que tenga sentido operar, tales como edades, longitudes, pesos, tiempos, números de individuos, etc.
+    Distinguimos dos tipos:
+
+    -   **Discretos**: Pueden tomar solo valores que avanzan a saltos y que podemos identificar con números naturales: número de hermanos, número de ingresos en un día en un hospital…
+
+    -   **Continuos**: Podrían tomar cualquier valor real dentro de un intervalo si se pudieran medir con precisión infinita: altura, temperatura, tiempo…
+
+¿Como diferencia en discretos y ordinales?
+
+Por ejemplo, si pedimos a un paciente que califique su dolor con un número natural de 0 a 10, no es un dato cuantitativo, sino ordinal, ya que no es una medida precisa del dolor.
+En concreto, es conveniente considerar en la práctica como datos continuos aquellos que dan lugar a números naturales muy grandes
+
+## Cramática con Tydyverse
+
+### Paquetes de Tydiverse
+
+-   **ggplot2**: Permite crear gráficos de forma declarativa.
+
+-   **dplyr**: Gramática de manipulación de datos, un conjunto coherente de acciones que resuelven los retos más comunes como juntar datos y transformarlos.
+
+-   **tidyr**: Conjunto de funciones que ayudan a obtener datos ordenados.
+    En resumen, cada variable va en una columna, y cada fila es una unidad muestral.
+
+-   **readr**: Proporciona una forma rápida y amigable de leer datos rectangulares (como csv, tsv).
+
+-   **purrr**: Permite sustituir muchos bucles for por código más fácil de escribir y más expresivo.
+
+-   **tibble**: Un formato más moderno que el data frame.
+
+-   **stringr**: Conjunto cohesivo de funciones diseñadas para hacer el trabajo con cadenas de texto lo más fácil posible.
+
+-   **forcats**: Conjunto de herramientas útiles que resuelven problemas comunes con factores.
+
+**¿Que significa tidy data?** Decimos que unos datos están bien estructurados o son “tidy data” si se cumplen los siguientes principios: - Cada variable forma una columna.
+- Cada observación forma una fila.
+- Cada tipo de unidad de observación forma una tabla.
+
+#### Operador pipe (%\>%)\*\*
+
+```{r, echo=FALSE}
+#install.packages("palmerpenguins",dep=TRUE)
+library("palmerpenguins")
+#print(penguins, width = 50)
+```
+
+1.  Ejemplo sin pipe(tydiverse)
+
+```{r}
+# Sin pipes
+mean(subset(penguins, year == 2007)$body_mass_g, na.rm = T)
+
+```
+
+2.  Ejemplo con pipe(tydiverse)
+
+```{r}
+# Con pipes (tidyverse)
+resultado <- penguins %>% 
+  subset(year == 2007) %>% 
+  .$body_mass_g %>% 
+  mean(na.rm = T)
+```
+
+#### Dataframes con Tibbels
+
+Un **tibble** se puede crear de cuatro maneras diferentes.
+
+1.  A partir de vectores columna:
+
+```{r}
+tibble(
+  x = c("a", "b"),
+  y = c(1, 2),
+  z = c(T, F)
+)
+```
+
+2.  Escribendo el texto por columnas:
+
+```{r}
+tribble(
+  ~x, ~y, ~z,
+  "a", 1, T,
+  "b", 2, F
+)
+```
+
+3.  Creando un tibble a partir de otro objeto de las clases matrix o data.frame:
+
+```{r}
+data.frame(
+  x = c("a", "b"),
+  y = c(1, 2),
+  z = c(T, F)
+) %>% 
+as_tibble
+```
+
+4.  Creando un tibble a partir de vectores con nombre:
+
+```{r}
+c(x = "a", y = "b", z = 1) %>%
+  enframe(name = "x", value = "y")
+```
+
+-   **glimpse** nos da la versión transpuesta de str()
+
+-   El subconjunto de un **tibble (\[\])** siempre devuelve otro tibble y nunca un vector.
+
+### Ordenando datos tidyr
+
+Podemos cambiar el formato de una tabla de datos con las funciones: **pivot_longer()**(añadimos más filas) y **pivot_wider()**(quitamos filas) tal como se muestra en la siguiente figura.
+
+Otra cosa que podemos hacer con *tidyr* es “agrupar” datos de manera que cada grupo se convierte en una sola fila en un data frame.
+La función **nest()** genera datos anidados en un data frame con una fila por species y year.
+Para deshacer las estructuras de datos anidados se puede usar la función **tidyr::unnest()**.
+
+### Manejo de NAs
+
+-   Si queremos eliminar los NA de una tabla:
+
+    *incompl_penguins %\>% drop_na(measurement)*
+
+-   Para reemplazar los valores faltantes por la entrada siguiente:
+
+    *incompl_penguins %\>% fill(measurement, .direction = "down")*
+
+-   Reemplazar los valores que faltan por un valor predefinido.
+
+    *incompl_penguins %\>% replace_na(replace = list(measurement = mean(.\$measurement, na.rm = T)))*
+    
+### Manipulación datos dplyr
+
+-**Operadores por filas**
+    - *filter()* selecciona las filas que cumplen uno o varios criterios lógicos.
+    - *slice()* selecciona las filas en función de su ubicación en los datos.
+    - *arrange()* cambia el orden de las filas.
+    - *distinct()* selecciona sólo filas únicas
+
+- **Operaciones por columnas**
+    - *select()* selecciona determinadas columnas
+    - *rename()* cambia los nombres de las columnas
+    - *relocate()* cambia el orden de las columnas
+    - *mutate()* transforma los valores de las columnas y/o crea nuevas columnas
+    - *pull()* extrae columnas individuales como vectores
+    - *lag()* desplaza los valores de las columnas n posiciones hacia adelante
+
+- Usamos .keep para especificar las columnas que se mantendrán después de la manipulación.
+
+- Usamos .before/.after para especificar la posición de la nueva columna.
+
+- Para anular una columna dada simplemente utiliza el mismo nombre de columna.
+
+- Para mantener únicamente la nueva columna utiliza dplyr::transmute().
+
+- Across: Aplicar la misma transformación en varias columnas. No requiere que se especifique explícitamente un nombre de columna, ya que sólo transforma las columnas existentes.
+
+#### Operaciones sobre datos agrupados
+- **group_by()** divide los datos en función de una o varias columnas.
+
+- **summarise()** reduce un grupo de datos en una sola fila
+
+- group_by() cambia la representación del tibble y lo transforma en un data frame agrupado (grouped_df). Esto nos permite operar en los subgrupos individualmente usando summarise().
+
+### ggplot2
+Un ggplot necesita al menos tres cosas que hay que especificar:
+1. Datos: ggplot(data = df)
+2. Estética: aes(x = var1, y = var2)
+3. Geometría: geom_point()
+
+Ejemplo:
+```{r}
+penguins %>% 
+  ggplot(aes(x=bill_length_mm, y = flipper_length_mm)) +
+  geom_point(na.rm = TRUE)
+```
+
+#### ggplot2: Variables cualitativas
+
+- Una variable cualitativa
+```{r}
+penguins %>% 
+  ggplot(aes(x = species)) +
+  geom_bar(fill="blue") + 
+  labs(x="Especie", y="Número de pingüinos") +
+  theme_bw() +
+  theme(axis.text = element_text(size=20),
+        axis.title = element_text(size=20, face = "bold")) 
+```
+
+- Dos variables cualitativas
+    - Grafico de barras
+```{r}
+    penguins %>% ggplot() + 
+  geom_bar(aes(species, fill=island),
+           position="dodge") + coord_flip() +
+  guides(fill = guide_legend(title = "Isla")) +
+  labs(x="Número de pingüinos", y="Especie") +
+  theme_bw() +
+  theme(axis.text = element_text(size=20),
+        axis.title = element_text(size=20, face = "bold"),
+        legend.title = element_text(size=20)) 
+```
+
+      - Grafico de barras donde cada barra represente el 100%
+      
+```{r}
+penguins %>% ggplot() + 
+  geom_bar(aes(species, fill=island),
+           position="fill") + coord_flip() +
+  guides(fill = guide_legend(title = "Isla")) +
+  labs(y="Proporción de pingüinos", x="Especie") +
+  theme_bw() +
+  theme(axis.text = element_text(size=20),
+        axis.title = element_text(size=20, face = "bold"),
+        legend.title = element_text(size=20))
+```
+
+#### ggplot2: Variables cuantitativas
+
+- Una variable cuantitativa
+
+```{r}
+penguins %>% 
+  ggplot(aes(x = flipper_length_mm)) +
+  geom_histogram(na.rm = TRUE) +
+    labs(x="Longitud de la aleta en mm", 
+         y="Frecuencia absoluta") + 
+  theme_bw() +
+  theme(axis.text = element_text(size=20),
+        axis.title = element_text(size=20, face = "bold"))
+```
+
+- Dos variables cuantitativas
+
+```{r}
+ggplot(penguins) +
+  geom_point(mapping = aes(x = flipper_length_mm,
+                           y = body_mass_g,
+                           color = sex), size=3)+ theme_bw() +
+  theme(axis.text = element_text(size=20),
+        axis.title = element_text(size=20, face = "bold"),
+        legend.title = element_text(size=20)) + 
+  guides(fill = guide_legend(title = "Sexo"))
+```
+
+#### ggplot2: Variables cuantitativas y cualitativas
+
+```{r}
+ggplot(data = penguins, aes(x = flipper_length_mm)) +
+  geom_histogram(aes(fill = species), 
+                 alpha = 0.5, 
+                 position = "identity",
+                 na.rm = TRUE) +
+  scale_fill_manual(values = c("darkorange","purple","cyan4")) +
+  labs(x = "Longitud de la aleta en mm",
+       y = "Frecuencia absoluta") +
+  guides(fill = guide_legend(title = "Especie")) +
+  theme_bw() +
+  theme(axis.text = element_text(size=20),
+        axis.title = element_text(size=20, face = "bold"),
+        legend.title = element_text(size=20))
+```
+
+#### ggplot2-borxplot: Variables cuantitativas y cualitativas
+
+```{r}
+ggplot(data = penguins, aes(x = species, y = flipper_length_mm)) +
+  geom_boxplot(aes(color = species), width = 0.3, 
+               show.legend = FALSE) + 
+  geom_jitter(aes(color = species), alpha = 0.5, 
+              show.legend = FALSE, 
+              position = position_jitter(width = 0.2, seed = 0)) +
+  scale_color_manual(values = c("darkorange","purple","cyan4")) +
+  labs(x = "Epecie", y = "Longitud de la aleta en mm")
+```
+
+
+# Análisi multivariante
+
+## Poblaciones: Vectores aleatorios
+
+### Covarianza
+La **covarianza** ($\sigma_{X,Y}$) de dos variables $X$ e $Y$ es una medida del comportamiento conjunto de estas dos variables.
+
+La **covarianza** de $X$ e $Y$ puede tomar cualquier valor real, y mide el grado de variación conjunta de las variables en el sentido sigüiente:
+
+- *Covarianza positiva* significa la misma tendencia: Si $X$ aumenta,$y$ tiende a aumentar. Esto suele expresarse diciendo que hay asociación positiva entre $X$ e $Y$.
+
+- *Covarianza negativa* significa la tendencia inversa: Si $X$ aumenta, $Y$ tiende a disminuir. Esto suele expresarse diciendo que hay asociación negativa entre $X$ e $Y$.
+
+- *Covarianza nula* significa que no hay ninguna tendencia en este sentido, es decir, $X$ e $Y$ són independientes.
+
+*OBSERVACIÓN:* Dos variables aleatorias pueden tener covarianza 0 y no ser independientes.
+
+### Correlación (var. continuas)
+
+La **correlación** de las variables $X$ e $Y$ se define como el cociente de su covarianza entre el product de sus desviaciones típicas:
+$$
+\rho_{X,Y}=\frac{\sigma_{X,Y}}{\sigma_X \sigma_Y}
+$$
+
+- Propiedades:
+    1. Toma valores entre $-1$ y $1$
+    2. Es simétrica
+    3. Cuando $|\rho_{X,Y}|$ este más cerca de 1, quiere decir que más se acerca $Y$ a ser función lineal de $X$($Y=aX+b$)
+    4. Si la correlación es nula, $X$ e $Y$ són incorreladas.
+    5. Si $X$ e $Y$ son independientes, también son incorreladas. El recíproco en general es falso.
+    
+
+**La correlación de Pearson de dos variables continuas mide la tendencia de las variables a variar conjuntamente de manera lineal.**
+    
+    
+- TEOREMA:
+
+Si $X_1$, $X_2$ son dos copias independientes de una misma v.a $X$:
+$$\rho_{X_1,X_2,-X_1}=-\frac{1}{\sqrt{2}}$$
+
+- **Código R**:   
+
+```{r}
+X=rbinom(101,100,0.5)
+X1=X[-101]
+X2.menos.X1=diff(X)
+plot(X1,X2.menos.X1,pch=20,xlab=expression(X[1]),
+     ylab=expression(X[2]-X[1]))
+```
+
+```{r}
+cor(X1,X2.menos.X1)
+```
+
+
+## Estadística descriptiva: Muestras
+
+### Covarianza
+
+Sean $\underline{X}=(x_1,x_2,...,x_n)$, $\underline{Y}=(y_1,y_2,...,y_n)$, dos vectores de la misma dimensión, donde $\overline{X}$, $\overline{Y}$, sus medias muestrales.
+
+- **Covarianza muestral**: $\tilde{S}_{X,Y}= \frac{1}{n-1}\sum_{i=1}^{n}((x_i - \overline{x})(y_i - \overline{Y}))$
+
+- **Covarianza**: $S_{X,Y} = \frac{1}{n} \sum_{i=1}^{n}((x_i - \overline{x})(y_i - \overline{Y}))= \frac{n-1}{n}\tilde{S}_{X,Y}$
+
+Solo tiene sentido si estos vectores $\underline{X}, \underline{Y}$ representan los valores de dos **variables cuantitativas**.
+
+    - Cuando $\tilde{S}_{X,Y} > 0$ si $x_i>x_j$ entonces $y_i>y_j$, es decir tienen misma tendencia.
+    
+    - Cuando $\tilde{S}_{X,Y} < 0$ si $x_i>x_j$ entonces $y_i<y_j$, es decir **no**  tienen misma tendencia.
+    
+    - Cuando $\tilde{S}_{X,Y} < 0$  no hay ninguna tendencia en este sentido.
+    
+La **matriz de covaliancias** es simétrica.
+    
+Ejemplo:
+```{r, echo=FALSE}
+BMI= c(18.3,24.4,24.6,24.4,22.2,19.5)
+Chol=c(170,202,215,218,210,210)
+DF=data.frame(BMI,Chol)
+#mean(BMI)
+```
+
+La covarianza muestral de dos vectores numéricos de la misma longitud se calcula en R con la función *cov*:
+
+```{r}
+cov(BMI,Chol)
+```
+
+La covarianza asecas se calcula $cov\cdot\frac{n-1}{n}$:
+
+```{r}
+n=length(BMI)
+cov(BMI,Chol)*(n-1)/n
+```
+
+La **matriz de covarianzas muestrales** se calcula con la función *cov* aplicada a la matriz o al data frame de variables numéricas que almacena la tabla de datos. Para calcular la **matriz de covarianzas a secas**, se multiplica el resultado de cov por $\frac{n-1}{n}$, donde $n$ es el número de filas de la tabla.
+
+
+### Corrrelación de Pearson
+
+Sean $\underline{X}=(x_1,x_2,...,x_n)$, $\underline{Y}=(y_1,y_2,...,y_n)$, dos vectores de la misma dimensión.
+La **correlación de Pearson** és:
+$$
+R_{X,Y}=\frac{\tilde{S}_{X,Y}}{\tilde{S}_{X}\tilde{S}_{Y}}=\frac{S_{X,Y}}{S_{X}S_{Y}}
+$$
+
+- Propiedades:
+
+    - $R_{X,Y}=R_{Y,X}$
+    - $-1 < R_{X,Y} < 1$, son menores o iguales
+    - $R_{X,Y}$ mismo signo e influencia que $\tilde{S}_{X,Y}$
+    
+- Coeficiente de determinación de la regresión lineal $R^2=R_{x,y}^2$
+```{r}
+summary(lm(Chol~BMI))$r.squared
+```
+
+- Si algún vextor $X,Y$ es constante, entonces $R_{X,Y}=0$
+
+- Con R, se puede calcular con la función *cor*.
+
+```{r}
+cor(BMI,Chol)
+```
+
+- **Representación gráfica**
+
+```{r}
+plot(BMI,Chol,pch=20)
+abline(lm(Chol~BMI),col="red",lwd=1.5)
+```
+
+Podemos observar como Chol tiende a crecer cuando BMI crece, pero los puntos (BMI,Chol) no tienden a estar sobre una recta.
+Que los puntos no caigan exactamente sobre la recta de regresión, indica que existen otros factores que afectan a los valores de Choll además de BMI, o que la relación entre estas dos variables no es completamente lineal.
+
+### Correlación de Spearman
+
+Si no esperamos que ls dependecia lineal exista, o si nuestras **variables son discretas o simplemente ordinales**, emplearemos la **correlación de Spearman**.
+
+Formalmente, la correlación de Spearman de dos vectores $X,Y$ se define como la correlación de Pearson de los vectores de rangos de $X,Y$.
+
+¿Como se calcula dicho vector?
+1. Ordenamos por orden de mayor a menor
+2. El rango de los dos elementos 1 de $x$ es la media de las posiciones 1, 2 del vector ordenado: 1.5.
+
+Con R el vector de rangos se calcula con la función rank:
+```{r}
+rank(c(4,5,1,5,1,3,4,4))
+```
+
+Otra forma:
+```{r}
+cor(BMI,Chol,method="spearman")
+```
+
+
+### Contrastes de correlación
+
+En un contraste de correlación de dos variables poblacionales continuas $X$ e $Y$, la hipótesis nula es que no hay correlación entre las dos variables, lo cual traduce que no hay ninguna relación entre ellas.
+
+Por lo tanto, si en un contraste de correlación rechazamos la hipótesis nula, en particular concluimos que las variables $X$ e $Y$ son dependientes (porque si fueran independientes, su correlación seria 0).
+
+Con R:
+```{r}
+cor.test(BMI,Chol,alternative="greater")
+```
+
+**La conclusión es que no hemos obtenido evidencia que el BMI y el nivel de colesterol tengan correlación positiva en la población de los adultos sanos. No en nuestra muestra, que sí que ha dado correlación positiva. Recordad que los contrastes siempre se refieren a la población.**
+
+Este resultado corresponde a una prueba de correlación de Pearson para evaluar la relación lineal entre el índice de masa corporal (BMI) y el colesterol (Chol). Vamos a interpretar cada parte del resultado:
+
+
+- **Valor de t**: t=1.949 Este es el valor del estadístico de prueba. Un valor de t mayor en valor absoluto indica una correlación más fuerte, mientras que un valor cercano a 0 indica una correlación más débil.
+
+- **Grados de libertad (df)**: df=4 — El número de grados de libertad en esta prueba, que depende del tamaño de la muestra. Aquí, parece que el tamaño de la muestra es de 6 observaciones (n−2=4 da n=6).
+
+- **Valor p**: p=0.06155 — Este es el valor p de la prueba. Si el valor p es menor que el nivel de significancia elegido (por ejemplo, 0.05), se rechaza la hipótesis nula. Aquí, el valor p es 0.06155, lo cual es ligeramente mayor que 0.05. Esto sugiere que no tenemos suficiente evidencia para rechazar la hipótesis nula de que la correlación es cero al nivel de significancia del 5%, aunque el valor p es cercano a este umbral.
+
+- **Hipótesis alternativa**: "true correlation is greater than 0" — La hipótesis alternativa plantea que la correlación verdadera es mayor que 0, es decir, que existe una relación positiva entre BMI y Chol.
+
+- **Intervalo de confianza (IC) del 95%**: −0.08621998 a 1.00000000 Este intervalo de confianza para la correlación sugiere que el valor real de la correlación podría estar entre aproximadamente -0.086 y 1. Este amplio rango indica incertidumbre en la estimación de la correlación, posiblemente debido al tamaño pequeño de la muestra.
+
+- **Estimación de la correlación (cor)**: 0.6979141 Este es el coeficiente de correlación de Pearson calculado entre BMI y Chol. Un valor de 0.6979 indica una correlación positiva moderada-alta entre BMI y Chol, lo cual sugiere que, a medida que aumenta BMI, también tiende a aumentar Chol. Sin embargo, dado el valor p y el intervalo de confianza, no es concluyente si esta correlación es significativa con el nivel de significancia del 5%.
+
+
+## Gráfocps para datos multivariantes
+
+- **Boxplot bivariante**: 
+
+```{r}
+library(MVA)
+library(palmerpenguins)
+
+a2<- penguins %>%
+  dplyr::select(body_mass_g,bill_length_mm) %>%
+  na.omit %>% as.matrix()
+
+bvbox(a2,xlab = "Peso del pingüino en gr", 
+           ylab = "Longitud del pico en mm",
+      pch = 19, cex = 1.25, col = "red")
+
+```
+
+Las dos rectas dentro de las elipses del gráfico anterior son estimaciones de la recta de regresión.La recta más oscura es la habitual de mínimos cuadrados utilizando todas las observaciones. La recta más clara es una estimación más robusta que reduce la influencia de cualquier valor extremo.
+
+
+- **Matriz de dispersión**:
+
+Para diversas **variables cuantitativas** utilizando una matriz:
+
+```{r}
+a<-penguins %>%
+  dplyr::select(3:7) %>%
+  na.omit
+
+pairs(a,
+      col = c("red", "blue")[as.integer(a$sex)], 
+      pch = 18)
+```
+
+
+- Mejor esta:
+```{r}
+ggpairs(a)
+```
+
+Por defecto, la diagonal principal de la matriz contiene la curva de densidad para cada variable. Por debajo de la diagonal principal se muestran los gráficos de dispersión y la correlación (para las variables cuantitativas) o el cruce entre variables si se trata de una variable categórica.
+
+INTERPRETACIÓN
+
+- En las celdas superiores, se muestran los coeficientes de correlación entre pares de variables junto con su nivel de significancia (*** indica significancia estadística alta).
+
+- Los valores de correlación permiten identificar relaciones lineales entre las variables. Por ejemplo:
+
+    - La longitud del pico y la profundidad del pico tienen una correlación negativa moderada (-0.229), lo que sugiere que cuando una de estas medidas aumenta, la otra tiende a disminuir ligeramente.
+
+    - La longitud de la aleta y la masa corporal tienen una correlación positiva fuerte (0.873), indicando que a medida que aumenta la longitud de la aleta, también aumenta la masa corporal de los pingüinos.
+    
+- Correlaciones con niveles altos de significancia (como 0.873 entre longitud de la aleta y masa corporal) pueden ser importantes para construir modelos predictivos o interpretar relaciones en el contexto de la biología.
+
+- Distribuciones de Variables:
+
+    - La diagonal muestra la distribución de cada variable individual en forma de histogramas o gráficos de densidad, que permiten ver la distribución de valores en cada caso.
+    
+    - Podemos observar, por ejemplo, que bill_length_mm parece tener una distribución bimodal, sugiriendo la presencia de dos subgrupos.
+    
+- Diagramas de dispersión:
+
+    - Las celdas inferiores muestran diagramas de dispersión (scatter plots) entre cada par de variables cuantitativas.
+    
+    - Estos gráficos ayudan a visualizar la tendencia de las relaciones, como la agrupación de puntos en ciertas áreas y la posible linealidad de algunas correlaciones. Por ejemplo, en la relación entre flipper_length_mm y body_mass_g, se puede ver una tendencia positiva clara.
+
+- Comparación con sex:
+
+    - La última columna y fila comparan cada variable cuantitativa con el sexo de los pingüinos.
+    
+    - Los gráficos de cajas (boxplots) muestran la distribución de cada variable según el sexo. Esto permite ver si existen diferencias significativas entre machos y hembras en variables como bill_length_mm o body_mass_g.
+
+
+- **Caras de Chernoff**
+
+Cada variable del conjunto de datos se usa para representar una característica de la cara. 
+Chernoff usó hasta 18 variables para representar diferentes rasgos faciales como cabeza, nariz, ojos, cejas, boca y orejas. 
+El gráfico de Chernoff tiene como ventaja la facilidad humana para reconocer patrones de caras. El inconveniente es que la representación es muy dependiente de las variables escogidas para representar cada rasgo. 
+
+Ejemplo R:
+```{r}
+b<- penguins %>% 
+      filter(species=="Adelie", 
+             island=="Torgersen",
+             sex=="female",
+             year==2007)
+
+faces(b[,3:6],face.type = 1, scale =TRUE,print.info = TRUE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
